@@ -7,6 +7,14 @@
 #include <cmath>
 #include <chrono>
 
+#if binaryfile
+bool operator<(uint64_t a, uint64_t b){
+    for(int i = 0; i < 64; i++){
+        if(a[i] ^ b[i]) return b[i];
+    }
+    return false;
+}
+#endif
 namespace Generate {
 	void numbers() {
 		int n = 100000;
