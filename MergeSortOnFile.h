@@ -62,7 +62,7 @@ void Heap::heapify(uint64_t idx) {
 	if (left < size && arr[left].value < arr[idx].value) {
 		smallest = left;
 	}
-	if (right < size && arr[right].value < arr[idx].value) {
+	if (right < size && arr[right].value < arr[smallest].value) {
 		smallest = right;
 	}
 	if (smallest != idx) {
