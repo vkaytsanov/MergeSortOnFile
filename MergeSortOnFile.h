@@ -1,55 +1,56 @@
 #pragma once
+struct HeapNode {
+	uint64_t value;
+	uint64_t index;
+};
 struct Heap {
-	struct HeapNode {
-		uint64_t value;
-		uint64_t index;
-	};
 	HeapNode* arr;
 	uint64_t size;
-	Heap(HeapNode* = nullptr, uint64_t = 0);
+	Heap(HeapNode*, uint64_t);
 	HeapNode root();
 	uint64_t left(uint64_t);
 	uint64_t right(uint64_t);
 	void heapify(uint64_t);
 	void replaceMin(HeapNode);
-	void swap(HeapNode, HeapNode);
+	void swap(HeapNode*, HeapNode*);
 };
 
-struct MergeSortOnFile : public Heap{
-	short int number_of_files;
+struct MergeSortOnFile {
+	uint64_t number_of_files;
 	uint64_t single_file_length;
 	std::vector<FILE*> files;
-	MergeSortOnFile(short int, uint64_t);
+	MergeSortOnFile(uint64_t, uint64_t);
 	FILE* fileOpen(char*, char);
 	void mergeFiles();
 	void divideFiles();
 	void sort();
-	void mergeSort(uint64_t*, uint64_t, uint64_t);
-	void merge(uint64_t*, uint64_t, uint64_t, uint64_t);
-
+	void mergeSort(std::vector<uint64_t>&, uint64_t, uint64_t);
+	void merge(std::vector<uint64_t>&, uint64_t, uint64_t, uint64_t);
 };
 
 /* Heap Functions */
-void Heap::swap(HeapNode a, HeapNode b) {
-	HeapNode tmp = a;
-	a = b;
-	b = tmp;
+void Heap::swap(HeapNode* a, HeapNode* b) {
+	HeapNode tmp = *a;
+	*a = *b;
+	*b = tmp;
 }
-Heap::HeapNode Heap::root() {
-	return this->arr[1];
+HeapNode Heap::root() {
+	return this->arr[0];
 }
 uint64_t Heap::left(uint64_t pos) {
-	return (2 * pos);
-}
-
-uint64_t Heap::right(uint64_t pos) {
 	return (2 * pos + 1);
 }
 
-Heap::Heap(HeapNode* arr, uint64_t size) {
+uint64_t Heap::right(uint64_t pos) {
+	return (2 * pos + 2);
+}
+
+Heap::Heap(HeapNode * arr, uint64_t size) {
 	this->arr = arr;
 	this->size = size;
-	for (uint32_t i = (size - 1) / 2; i >= 0; i--) {
+	for (uint64_t i = (size - 1) / 2; i > 0; i--) {
+		//printf("%I64u\n", i);
+		//system("pause");
 		heapify(i);
 	}
 }
@@ -65,30 +66,29 @@ void Heap::heapify(uint64_t idx) {
 		smallest = right;
 	}
 	if (smallest != idx) {
-		Heap::swap(arr[idx], arr[smallest]);
+		Heap::swap(&arr[idx], &arr[smallest]);
 		heapify(smallest);
 	}
 }
 
 void Heap::replaceMin(HeapNode val) {
-	arr[1] = val;
-	heapify(1);
+	arr[0] = val;
+	heapify(0);
 }
 
 /* MergeSort Functions */
 
-void MergeSortOnFile::merge(uint64_t* arr, const uint64_t start, const uint64_t mid, uint64_t end) {
+void MergeSortOnFile::merge(std::vector<uint64_t>& arr,  uint64_t start,  uint64_t mid, uint64_t end) {
 	uint64_t a = mid - start + 1;
 	uint64_t b = end - mid;
-	std::vector<uint64_t> vec1;
-	vec1.reserve(a);
-	std::vector<uint64_t> vec2;
-	vec2.reserve(b);
-	for (int i = 0; i < a; i++) {
-		vec1.push_back(arr[start+i]);
+	std::vector<uint64_t> vec1(a);
+	std::vector<uint64_t> vec2(b);
+
+	for (uint64_t i = 0; i < a; i++) {
+		vec1[i] = arr[start + i];
 	}
-	for (int i = 0; i < b; i++) {
-		vec2.push_back(arr[start+a+i+1]);
+	for (uint64_t i = 0; i < b; i++) {
+		vec2[i] = arr[mid + i + 1];
 	}
 	uint64_t i = 0;
 	uint64_t j = 0;
@@ -114,98 +114,112 @@ void MergeSortOnFile::merge(uint64_t* arr, const uint64_t start, const uint64_t 
 		p++;
 	}
 }
-void MergeSortOnFile::mergeSort(uint64_t* arr, uint64_t start, uint64_t end) {
+void MergeSortOnFile::mergeSort(std::vector<uint64_t>& arr, uint64_t start, uint64_t end) {
 	if (start < end) {
 		uint64_t mid = (end - start) / 2 + start;
 		mergeSort(arr, start, mid);
-		mergeSort(arr, mid, end);
+		mergeSort(arr, mid + 1, end);
 		merge(arr, start, mid, end);
 	}
 }
 
 void MergeSortOnFile::divideFiles() {
-	for (short int i = 0; i < number_of_files; i++) {
+	for ( uint64_t i = 0; i < number_of_files; i++) {
 		//make file with uniq i
 		char file[7];
 		snprintf(file, sizeof(file), "%d.txt", i);
 		files.push_back(MergeSortOnFile::fileOpen(file, 'w'));
 		//write to it
-		
+
 		//close?
 	}
 	char inpfile[] = "GeneratedNumbers.txt";
 	FILE* input = MergeSortOnFile::fileOpen(inpfile, 'r');
-	short int k = 0;
 	uint64_t dummy;
-	uint16_t j = 0;
-	uint64_t* arr = new uint64_t[single_file_length];
-	
-	while (!feof(input)) { // tuka se chupi neshto
-		fscanf_s(input, "%llu", &arr[j]);
-		
-		j++;
-		if (j == single_file_length) {
-			j = 0;
-			MergeSortOnFile::mergeSort(arr, 0, single_file_length);
-			for (; j < single_file_length; j++) {
-				fprintf_s(files[k], "%llu", arr[j]);
-			}
-			k++;
-			j = 0;
+	std::vector<uint64_t> arr(single_file_length);
+	for(int k = 0; k < number_of_files; k++){
+		uint64_t j = 0;
+		for (; j < single_file_length; j++) {
+			fscanf_s(input, "%I64u", &dummy);
+			arr[j] = dummy;
+
 		}
-		if (k == number_of_files) {
-			break;
+		//for (j = 0; j < single_file_length; j++) {
+		//	printf("%I64u\n", arr[j]);
+
+		//}
+		//printf("j: %d", j);
+		//printf("%d", sizeof(arr));
+		//system("pause");
+		MergeSortOnFile::mergeSort(arr, 0, j-1);
+		for(j = 0; j < single_file_length; j++){	
+			fprintf_s(files[k], "%I64u\n", arr[j]);
 		}
 		
 	}
-	
-	for (short int i = 0; i < number_of_files; i++) {
+
+	for ( uint64_t i = 0; i < number_of_files; i++) {
 		fclose(files[i]);
 	}
 	fclose(input);
 }
 void MergeSortOnFile::mergeFiles() {
-	for (short int i = 0; i < number_of_files; i++) {
+	for ( uint64_t i = 0; i < number_of_files; i++) {
 		char file[7];
 		snprintf(file, sizeof(file), "%d.txt", i);
 		files[i] = MergeSortOnFile::fileOpen(file, 'r');
 	}
-	char file[] = "GeneratedNumbers.txt";
+	char file[] = "Sorted.txt";
 	FILE* output = MergeSortOnFile::fileOpen(file, 'w');
 	HeapNode* arr = new HeapNode[number_of_files];
-	for (short int i = 0; i < number_of_files; i++) {
-		fscanf_s(files[i], "%llu", &arr[i]);
+	//Fill
+	for (uint64_t i = 0; i < number_of_files; i++) {
+		fscanf_s(files[i], "%I64u", &arr[i].value);
 		arr[i].index = i;
 	}
+	
 	Heap pyramid(arr, number_of_files);
-	while (1) {
-		bool empty = true;
-		for (int i = 0; i < number_of_files; i++) {
-			if (!feof(files[i])) {
-				empty = false;
-				break;
-			}
-		}
-		if (empty) break;
+
+	uint64_t count = number_of_files;
+	uint64_t times = single_file_length*number_of_files;
+	while (count) {
+		times--;
 		HeapNode next = pyramid.root();
-		fprintf_s(output, "%llu\n", next);
-		fscanf_s(files[next.index], "%llu", next.value);
+		if (next.value == INT64_MAX) {
+			//break;
+			
+		}
+		
+		//printf("%I64u\n", next.index);
+		//
+		//system("pause");
+		fprintf_s(output, "%I64u\n", next.value);
+
+		if (fscanf_s(files[next.index], "%I64u", &next.value) != 1) {
+			count--;
+			next.value = INT64_MAX;
+			
+		}
+
+		
+		
+
 		pyramid.replaceMin(next);
 	}
-	for (short int i = 0; i < number_of_files; i++) {
+	for (uint64_t i = 0; i < number_of_files; i++) {
 		fclose(files[i]);
 	}
 	fclose(output);
-
 }
 
 void MergeSortOnFile::sort() {
 	MergeSortOnFile::divideFiles();
 	MergeSortOnFile::mergeFiles();
 }
-MergeSortOnFile::MergeSortOnFile(short int numFiles, uint64_t parts) {
-	this->number_of_files = numFiles ;
-	this->single_file_length = parts/ numFiles;
+MergeSortOnFile::MergeSortOnFile(uint64_t numFiles, uint64_t parts) {
+	
+	number_of_files = numFiles;
+	single_file_length = parts;
 }
 
 FILE* MergeSortOnFile::fileOpen(char* filename, char io) {
