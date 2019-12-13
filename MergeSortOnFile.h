@@ -113,6 +113,7 @@ void MergeSortOnFile::merge(std::vector<uint64_t>& arr,  uint64_t start,  uint64
 		arr[p] = vec2[j];
 		p++;
 	}
+	//printf("%I64u\n", p);
 }
 void MergeSortOnFile::mergeSort(std::vector<uint64_t>& arr, uint64_t start, uint64_t end) {
 	if (start < end) {
@@ -124,7 +125,7 @@ void MergeSortOnFile::mergeSort(std::vector<uint64_t>& arr, uint64_t start, uint
 }
 
 void MergeSortOnFile::divideFiles() {
-	for ( uint64_t i = 0; i < number_of_files; i++) {
+	for (uint64_t i = 0; i < number_of_files; i++) {
 		//make file with uniq i
 		char file[7];
 		snprintf(file, sizeof(file), "%d.txt", i);
@@ -140,8 +141,8 @@ void MergeSortOnFile::divideFiles() {
 	for(int k = 0; k < number_of_files; k++){
 		uint64_t j = 0;
 		for (; j < single_file_length; j++) {
-			fscanf_s(input, "%I64u", &dummy);
-			arr[j] = dummy;
+			fscanf_s(input, "%I64u", &arr[j]);
+		
 
 		}
 		//for (j = 0; j < single_file_length; j++) {
@@ -152,8 +153,8 @@ void MergeSortOnFile::divideFiles() {
 		//printf("%d", sizeof(arr));
 		//system("pause");
 		MergeSortOnFile::mergeSort(arr, 0, j-1);
-		for(j = 0; j < single_file_length; j++){	
-			fprintf_s(files[k], "%I64u\n", arr[j]);
+		for(uint64_t c = 0; c < j; c++){	
+			fprintf_s(files[k], "%I64u\n", arr[c]);
 		}
 		
 	}
@@ -164,7 +165,7 @@ void MergeSortOnFile::divideFiles() {
 	fclose(input);
 }
 void MergeSortOnFile::mergeFiles() {
-	for ( uint64_t i = 0; i < number_of_files; i++) {
+	for (uint64_t i = 0; i < number_of_files; i++) {
 		char file[7];
 		snprintf(file, sizeof(file), "%d.txt", i);
 		files[i] = MergeSortOnFile::fileOpen(file, 'r');
@@ -179,16 +180,18 @@ void MergeSortOnFile::mergeFiles() {
 	}
 	
 	Heap pyramid(arr, number_of_files);
-
+	pyramid.heapify(0);
+	//for (uint64_t i = 0; i < number_of_files; i++) {
+	//	printf("%I64u, %I64u \n", pyramid.arr[i].value, arr[i].index);
+	//}
+	//system("pause");
 	uint64_t count = number_of_files;
-	uint64_t times = single_file_length*number_of_files;
+	//uint64_t times[10] = { 0 };
 	while (count) {
-		times--;
 		HeapNode next = pyramid.root();
-		if (next.value == INT64_MAX) {
-			//break;
-			
-		}
+		//times[next.index]++;
+		//printf("%I64u, %I64u \n", next.value, next.index);
+		//system("pause");
 		
 		//printf("%I64u\n", next.index);
 		//
@@ -197,7 +200,7 @@ void MergeSortOnFile::mergeFiles() {
 
 		if (fscanf_s(files[next.index], "%I64u", &next.value) != 1) {
 			count--;
-			next.value = INT64_MAX;
+			next.value = UINT64_MAX;
 			
 		}
 
