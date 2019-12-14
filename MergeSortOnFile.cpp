@@ -6,33 +6,38 @@
 #include <random>
 #include <memory>
 #include <cmath>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <atomic>
+#include <functional>
 #include "MergeSortOnFile.h"
+#include "Threads.h"
+#define RAM 10000
 
-#define binaryfile 0
-#if binaryfile
-template<typename T = uint64_t>
-bool operator <(const T & a, const T & b) {
-	for (int i = 0; i < 64; i++) {
-		if (a[i] ^ b[i]) return b[i];
-	}
-	return false;
-}
-#endif
+
+
 namespace Generate {
-	void numbers(uint64_t n = 1000) {
+	void numbers(uint64_t bytes = 64*1000) {
+		//std::vector<uint64_t> data(bytes / sizeof(uint64_t));
+		//std::shuffle(data.begin(), data.end(), std::mt19937{ std::random_device{}() });
 		FILE* readFile;
 		errno_t err;
-		err = fopen_s(&readFile, "GeneratedNumbers.txt", "w");
+		err = fopen_s(&readFile, "file.binary", "wb");
+		if (!readFile) {
+			return;
+		}
 		std::random_device rd;
 		std::mt19937_64 e2(rd());
 		std::uniform_int_distribution<uint64_t> res(0, 0xFFFFFFFFFFFFFFFF-1);
 		//int n = static_cast<int>(number);
-		for (int i = 0; i < n; i++) {
+		
 
-			//uint64_t res = (num30 << 34) + (num30 << 4) + t4;
-			fprintf_s(readFile, "%I64u\n", res(e2)); // problems with I64d
-
+		for (uint64_t i = 0; i < bytes; i++) {
+			uint64_t random = res(e2);
+			fwrite((&random), sizeof(uint64_t), 1, readFile); // problems with I64d
 		}
+		
 		fclose(readFile);
 
 	}
@@ -41,11 +46,20 @@ namespace Check {
 	bool sorted() {
 		FILE* readFile;
 		errno_t err;
-		err = fopen_s(&readFile, "Sorted.txt", "r");
+		err = fopen_s(&readFile, "Sorted.txt", "rb");
+		if (!readFile) {
+			return false;
+		}
+		if (fseek(readFile, 0, SEEK_END) != 0) {
+			fclose(readFile);
+			return false;
+		}
+
 		uint64_t first;
 		uint64_t next;
-		fscanf_s(readFile, "%I64u", &first);
-		while (fscanf_s(readFile, "%I64u", &next) == 1) {
+
+		fread(&first, sizeof(uint64_t), 1, readFile);
+		while (fread(&next, sizeof(uint64_t), 1, readFile) == 1) {
 			if (next <= first) {
 				printf("%I64u , %I64u\n", next, first);
 				fclose(readFile);
@@ -74,19 +88,33 @@ int main(int argc, char** argv) {
 		}
 		if (argv[1] == "sort") {
 			auto start = std::chrono::high_resolution_clock::now();
+			auto start = std::chrono::high_resolution_clock::now();
 			FILE* readFile;
 			errno_t err;
-			err = fopen_s(&readFile, "GeneratedNumbers.txt", "r");
-			int64_t d;
-
-			while (!feof(readFile)) {
-				fscanf_s(readFile, "%I64u", &d); // problems with I64d
-				//printf("%I64u\n", d);
-				fileSize++;
+			err = fopen_s(&readFile, "file.binary", "rb");
+			if (!readFile) {
+				return false;
 			}
-			fileSize--;
-			fileSize = fileSize / fileDivideNumber;
+			if (fseek(readFile, 0, SEEK_END) != 0) {
+				fclose(readFile);
+				return false;
+			}
+			const uint64_t bytes = ftell(readFile);
+			const uint64_t intCount = bytes / sizeof(uint64_t);
+			if (bytes < 0 || intCount * sizeof(uint64_t) != bytes) {
+				fclose(readFile);
+				return false;
+			}
+			int64_t d;
 			fclose(readFile);
+			fileDivideNumber = ceil(intCount / (sizeof(uint64_t) * RAM));
+			if (fileDivideNumber == 0) {
+				fileDivideNumber++;
+				fileSize = intCount;
+			}
+			else {
+				fileSize = sizeof(uint64_t) * RAM;
+			}
 			MergeSortOnFile m = MergeSortOnFile(fileDivideNumber, fileSize);
 			m.sort();
 			auto end = std::chrono::high_resolution_clock::now();
@@ -97,34 +125,47 @@ int main(int argc, char** argv) {
 		}
 		return 0;
 	}
-	//Generate::numbers(100000);
+	//Generate::numbers(sizeof(uint64_t)*100000);
 	auto start = std::chrono::high_resolution_clock::now();
 	FILE* readFile;
 	errno_t err;
-	err = fopen_s(&readFile, "GeneratedNumbers.txt", "r");
-	int64_t d;
-
-	while (!feof(readFile)) {
-		fscanf_s(readFile, "%I64u", &d); // problems with I64d
-		//printf("%I64u\n", d);
-		fileSize++;
+	err = fopen_s(&readFile, "file.binary", "rb");
+	if (!readFile) {
+		return false;
 	}
-	//fileSize--;
-	//fileSize = fileSize / fileDivideNumber;
+	if (fseek(readFile, 0, SEEK_END) != 0) {
+		fclose(readFile);
+		return false;
+	}
+	const uint64_t bytes = ftell(readFile);
+	const uint64_t intCount = bytes / sizeof(uint64_t);
+	if (bytes < 0 || intCount * sizeof(uint64_t) != bytes) {
+		fclose(readFile);
+		return false;
+	}
+	int64_t d;
+	//printf("%d", std::thread::hardware_concurrency());
+	//system("pause");
+	//while (fread((&d), sizeof(d), 1, readFile) == 1) {
+	//	fileSize++;
+	//}
+	//std::cout << sizeof(uint64_t);
+	//printf("%I64u\n", intCount);
+	//system("pause");
 	fclose(readFile);
-	fileDivideNumber = fileSize / 2000;
+	fileDivideNumber = ceil(intCount / (sizeof(uint64_t)*RAM));
 	if (fileDivideNumber == 0) {
 		fileDivideNumber++;
-		fileSize--;
+		fileSize = intCount;
 	}
 	else {
-		fileSize = 2000;
+		fileSize = sizeof(uint64_t)*RAM;
 	}
 	MergeSortOnFile m = MergeSortOnFile(fileDivideNumber, fileSize);
 	m.sort();
 	auto end = std::chrono::high_resolution_clock::now();
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 
-	//std::cout << Check::sorted();
+	std::cout << Check::sorted();
 	
 }
