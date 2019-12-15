@@ -11,8 +11,11 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
-#include "MergeSortOnFile.h"
+#include <cstring>
+#include <cassert>
 #include "Threads.h"
+#include "MergeSortOnFile.h"
+
 #define RAM 10000
 
 
@@ -88,7 +91,6 @@ int main(int argc, char** argv) {
 		}
 		if (argv[1] == "sort") {
 			auto start = std::chrono::high_resolution_clock::now();
-			auto start = std::chrono::high_resolution_clock::now();
 			FILE* readFile;
 			errno_t err;
 			err = fopen_s(&readFile, "file.binary", "rb");
@@ -116,7 +118,7 @@ int main(int argc, char** argv) {
 				fileSize = sizeof(uint64_t) * RAM;
 			}
 			MergeSortOnFile m = MergeSortOnFile(fileDivideNumber, fileSize);
-			m.sort();
+			m.sortThread();
 			auto end = std::chrono::high_resolution_clock::now();
 			std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 		}
@@ -144,7 +146,7 @@ int main(int argc, char** argv) {
 		return false;
 	}
 	int64_t d;
-	//printf("%d", std::thread::hardware_concurrency());
+
 	//system("pause");
 	//while (fread((&d), sizeof(d), 1, readFile) == 1) {
 	//	fileSize++;
@@ -162,7 +164,8 @@ int main(int argc, char** argv) {
 		fileSize = sizeof(uint64_t)*RAM;
 	}
 	MergeSortOnFile m = MergeSortOnFile(fileDivideNumber, fileSize);
-	m.sort();
+	//m.sort();
+	m.sortThread();
 	auto end = std::chrono::high_resolution_clock::now();
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 
